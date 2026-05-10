@@ -1,0 +1,21 @@
+{
+  "short_name": "BarrilesOS",
+  "name": "Los Barriles OS",
+  "description": "An executive AI-powered management system for the 'Los Barriles' restaurant.",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3ccircle cx='50' cy='50' r='50' fill='%231f2937'/%3e%3ctext x='50' y='60' font-family='serif' font-weight='bold' font-size='45' text-anchor='middle' fill='white'%3eLB%3c/text%3e%3c/svg%3e",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3ccircle cx='50' cy='50' r='50' fill='%231f2937'/%3e%3ctext x='50' y='60' font-family='serif' font-weight='bold' font-size='45' text-anchor='middle' fill='white'%3eLB%3c/text%3e%3c/svg%3e",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1f2937",
+  "background_color": "#111827"
+}

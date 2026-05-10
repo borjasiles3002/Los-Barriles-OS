@@ -1,0 +1,271 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "Employee profile and status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["manager", "employee", "admin", "cocinero", "camarero"] },
+        "tasks": { "type": "array", "items": { "$ref": "Task" } },
+        "logs": { "type": "array", "items": { "$ref": "WorkLogEntry" } },
+        "shifts": { "type": "array", "items": { "$ref": "Shift" } }
+      },
+      "required": ["id", "name", "role"]
+    },
+    "Shift": {
+      "title": "Shift",
+      "description": "A scheduled shift for an employee",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" }
+      },
+      "required": ["id", "date", "startTime", "endTime"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task assigned to an employee",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "assignedBy": { "type": "string" }
+      },
+      "required": ["id", "text", "completed", "createdAt", "assignedBy"]
+    },
+    "WorkLogEntry": {
+      "title": "WorkLogEntry",
+      "description": "A clock-in or clock-out event",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["in", "out"] }
+      },
+      "required": ["id", "timestamp", "type"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Internal message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fromId": { "type": "string" },
+        "fromName": { "type": "string" },
+        "toId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "fromId", "fromName", "toId", "text", "timestamp", "read"]
+    },
+    "StockItem": {
+      "title": "StockItem",
+      "description": "Item in inventory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "stock": { "type": "number" },
+        "lowStockThreshold": { "type": "number" },
+        "lastPrice": { "type": "number" },
+        "family": { "type": "string" }
+      },
+      "required": ["id", "name", "stock"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "Table reservation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string" },
+        "fecha": { "type": "string", "format": "date-time" },
+        "personas": { "type": "number" },
+        "notas": { "type": "string" }
+      },
+      "required": ["id", "nombre", "fecha", "personas"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "table": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendiente", "en preparación", "listo", "entregado"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "items": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["id", "table", "status", "createdAt"]
+    },
+    "SaleEntry": {
+      "title": "SaleEntry",
+      "description": "Sale entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "concept": { "type": "string" }
+      },
+      "required": ["id", "date", "amount", "concept"]
+    },
+    "ExpenseEntry": {
+      "title": "ExpenseEntry",
+      "description": "Expense entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "concept": { "type": "string" },
+        "category": { "type": "string" },
+        "invoiceNumber": { "type": "string" }
+      },
+      "required": ["id", "date", "amount", "concept", "category"]
+    },
+    "ClosingData": {
+      "title": "ClosingData",
+      "description": "Closing data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "expectedSales": { "type": "number" },
+        "countedCash": { "type": "number" },
+        "discrepancy": { "type": "number" }
+      },
+      "required": ["id", "date", "expectedSales", "countedCash", "discrepancy"]
+    },
+    "PurchaseRecord": {
+      "title": "PurchaseRecord",
+      "description": "Purchase record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "totalAmount": { "type": "number" },
+        "invoiceNumber": { "type": "string" },
+        "invoiceUrl": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["id", "supplierName", "date", "totalAmount", "items"]
+    },
+    "Recipe": {
+      "title": "Recipe",
+      "description": "Recipe",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "ingredients": { "type": "array", "items": { "type": "object" } },
+        "instructions": { "type": "string" },
+        "prepTime": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "name", "ingredients"]
+    },
+    "Elaboration": {
+      "title": "Elaboration",
+      "description": "Elaboration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "stock": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "name", "stock", "category"]
+    },
+    "MenuAnalysis": {
+      "title": "MenuAnalysis",
+      "description": "Menu analysis",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "dishes": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["id", "date", "dishes"]
+    },
+    "HistoricalData": {
+      "title": "HistoricalData",
+      "description": "Historical data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "sales": { "type": "number" },
+        "expenses": { "type": "number" },
+        "foodCostPercentage": { "type": "number" }
+      },
+      "required": ["id", "date", "sales", "expenses", "foodCostPercentage"]
+    }
+  },
+  "firestore": {
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "Employee data"
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Internal messages"
+    },
+    "/drinkStock/{itemId}": {
+      "schema": "StockItem",
+      "description": "Drink inventory"
+    },
+    "/kitchenStock/{itemId}": {
+      "schema": "StockItem",
+      "description": "Kitchen inventory"
+    },
+    "/reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Reservations"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "/salesHistory/{saleId}": {
+      "schema": "SaleEntry",
+      "description": "Sales history"
+    },
+    "/expenseHistory/{expenseId}": {
+      "schema": "ExpenseEntry",
+      "description": "Expense history"
+    },
+    "/closingHistory/{closingId}": {
+      "schema": "ClosingData",
+      "description": "Closing history"
+    },
+    "/purchaseHistory/{purchaseId}": {
+      "schema": "PurchaseRecord",
+      "description": "Purchase history"
+    },
+    "/recipes/{recipeId}": {
+      "schema": "Recipe",
+      "description": "Recipes"
+    },
+    "/elaborations/{elaborationId}": {
+      "schema": "Elaboration",
+      "description": "Elaborations"
+    },
+    "/menuAnalyses/{analysisId}": {
+      "schema": "MenuAnalysis",
+      "description": "Menu analyses"
+    },
+    "/historicalData/{historicalId}": {
+      "schema": "HistoricalData",
+      "description": "Historical data"
+    }
+  }
+}

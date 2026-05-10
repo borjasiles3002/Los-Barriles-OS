@@ -1,0 +1,7 @@
+{
+  "name": "Los Barriles OS - Gestión Integral",
+  "description": "Sistema ejecutivo de gestión inteligente para el restaurante 'Los Barriles', integrando finanzas, inventario visual, RRHH y reservas con IA.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

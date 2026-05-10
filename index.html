@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Los Barriles OS</title>
+  <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3ccircle cx='50' cy='50' r='48' stroke='black' stroke-width='4' fill='white'/%3e%3ctext x='50' y='60' font-family='serif' font-weight='bold' font-size='45' text-anchor='middle' fill='black'%3eLB%3c/text%3e%3c/svg%3e">
+  <link rel="manifest" href="/manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3ccircle cx='50' cy='50' r='50' fill='%231f2937'/%3e%3ctext x='50' y='60' font-family='serif' font-weight='bold' font-size='45' text-anchor='middle' fill='white'%3eLB%3c/text%3e%3c/svg%3e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Los Barriles OS">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@1.40.0",
+    "react-dom": "https://esm.sh/react-dom@19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@19.2.4/",
+    "react/": "https://esm.sh/react@19.2.4/",
+    "react": "https://esm.sh/react@19.2.4",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@4.5.136/build/pdf.mjs"
+  }
+}
+</script>
+<style>
+  body {
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+</style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased">
+  <div id="root"></div>
+  <script>
+    window.process = window.process || { env: {} };
+  </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
