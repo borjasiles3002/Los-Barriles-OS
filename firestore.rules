@@ -1,187 +1,68 @@
-// ===============================================================
-// Assumed Data Model
-// ===============================================================
-//
-// Collection: employees
-// Document ID: employeeId
-// Fields:
-//   - id: string (required)
-//   - name: string (required)
-//   - role: string (required, enum: ['manager', 'employee'])
-//   - tasks: array of Task objects
-//   - logs: array of WorkLogEntry objects
-//
-// Collection: messages
-// Document ID: messageId
-// Fields:
-//   - id: string (required)
-//   - fromId: string (required)
-//   - fromName: string (required)
-//   - toId: string (required, can be 'all' or employeeId)
-//   - text: string (required)
-//   - timestamp: string (required)
-//   - read: boolean (required)
-//
-// Collection: drinkStock, kitchenStock
-// Document ID: itemId
-// Fields:
-//   - id: string (required)
-//   - name: string (required)
-//   - stock: number (required)
-//   - lowStockThreshold: number
-//   - lastPrice: number
-//   - family: string
-//
-// Collection: reservations
-// Document ID: reservationId
-// Fields:
-//   - id: string (required)
-//   - customerName: string (required)
-//   - date: string (required)
-//   - time: string (required)
-//   - guests: number (required)
-//
-// Collection: orders
-// Document ID: orderId
-// Fields:
-//   - id: string (required)
-//   - table: string (required)
-//   - status: string (required)
-//   - createdAt: string (required)
-//   - items: array
-//
-// ===============================================================
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
-    
     function isAuthenticated() {
       return request.auth != null;
     }
 
     function isManager() {
-      return isAuthenticated(); // Simplified for anonymous login support
+      return isAuthenticated() && request.auth.token.email == "borjasiles3002@gmail.com";
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function isStaff() {
+      return isAuthenticated();
     }
 
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    function validReservation(data) {
+      return data.keys().hasAll(['id', 'nombre', 'fecha', 'personas', 'notas'])
+        && data.keys().hasOnly(['id', 'nombre', 'fecha', 'personas', 'notas', 'status'])
+        && data.id is string
+        && data.nombre is string
+        && data.fecha is string
+        && data.personas is int
+        && data.personas > 0
+        && data.personas <= 30
+        && data.notas is string
+        && (!('status' in data) || data.status in ['pendiente', 'confirmada', 'rechazada', 'completada']);
     }
-
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
-    }
-
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
-    }
-
-    function isValidDateString(dateStr) {
-      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
 
     match /employees/{employeeId} {
       allow read: if true;
-      allow create: if isManager();
-      allow update: if isManager() || (isOwner(employeeId) && request.resource.data.role == resource.data.role);
-      allow delete: if isManager();
+      allow create, update, delete: if isManager();
     }
 
     match /messages/{messageId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow read, create, update: if isStaff();
+      allow delete: if isManager();
     }
 
     match /drinkStock/{itemId} {
-      allow read: if isAuthenticated();
+      allow read: if isStaff();
       allow write: if isManager();
     }
 
     match /kitchenStock/{itemId} {
-      allow read: if isAuthenticated();
+      allow read: if isStaff();
       allow write: if isManager();
     }
 
     match /reservations/{reservationId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if validReservation(request.resource.data);
+      allow read, update, delete: if isStaff();
     }
 
-    match /orders/{orderId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-
-    match /tipsHistory/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-
-    match /expenseHistory/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /salesHistory/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-
-    match /closingHistory/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /purchaseHistory/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /recipes/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /elaborations/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /inventoryTransactions/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /menuAnalyses/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /historicalData/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /system/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isManager();
-    }
-
-    match /test/{docId} {
-      allow read: if true;
-    }
+    match /orders/{orderId} { allow read, write: if isStaff(); }
+    match /tipsHistory/{docId} { allow read, write: if isStaff(); }
+    match /expenseHistory/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /salesHistory/{docId} { allow read, write: if isStaff(); }
+    match /closingHistory/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /purchaseHistory/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /recipes/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /elaborations/{docId} { allow read: if true; allow write: if isManager(); }
+    match /inventoryTransactions/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /menuAnalyses/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /historicalData/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /system/{docId} { allow read: if isStaff(); allow write: if isManager(); }
+    match /test/{docId} { allow read: if isManager(); allow write: if false; }
   }
 }

@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Los Barriles OS
 
-# Run and deploy your AI Studio app
+Sistema de gestion para el restaurante Los Barriles, con modulos de TPV, reservas, inventario, compras, finanzas, personal e IA.
 
-This contains everything you need to run your app locally.
+## Desarrollo local
 
-View your app in AI Studio: https://ai.studio/apps/f2b6395a-5531-4adb-8acb-87654d605a66
+1. Instala dependencias: `npm install`
+2. Copia `.env.example` a `.env` y rellena `GEMINI_API_KEY`.
+3. Arranca la app: `npm run dev`
 
-## Run Locally
+## Despliegue en Vercel
 
-**Prerequisites:**  Node.js
+Configura estas variables en **Project Settings > Environment Variables**:
 
+- `GEMINI_API_KEY`: clave privada de Gemini. Marcala como sensitive.
+- `APP_ORIGINS`: origenes permitidos separados por coma, por ejemplo `https://los-barriles-os.vercel.app`.
+- `GEMINI_RATE_LIMIT_PER_MINUTE`: opcional, por defecto `30`.
+- `GEMINI_MAX_REQUEST_BYTES`: opcional, por defecto `8000000`.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+No subas archivos `.env` al repositorio. Si alguna clave se publico, revocala en Google AI Studio y crea una nueva.
+
+## Seguridad operativa
+
+- La clave de Gemini se usa solo en la funcion `/api/gemini` de Vercel.
+- El cliente ya no envia claves de API propias.
+- Firestore limita las escrituras de gerente al correo propietario configurado en `firestore.rules`.
+- Manten un unico proyecto Vercel como produccion para evitar variables y dominios duplicados.
