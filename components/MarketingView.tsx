@@ -1,66 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
-import { generateImage, getApiKey } from '../services/geminiService';
+import React, { useState } from 'react';
+import { generateImage } from '../services/geminiService';
 import { ImageSize, AspectRatio } from '../types';
-import { LoadingSpinner, SparkIcon } from './icons';
-import useLocalStorage from '../useLocalStorage';
-import { hasAistudio } from '../utils/aistudio';
-
-declare global {
-    interface AIStudio {
-        hasSelectedApiKey: () => Promise<boolean>;
-        openSelectKey: () => Promise<void>;
-    }
-    interface Window {
-        aistudio?: AIStudio;
-    }
-}
+import { LoadingSpinner } from './icons';
 
 interface MarketingViewProps {
     onNavigate: (view: string) => void;
 }
 
-const MarketingView: React.FC<MarketingViewProps> = ({ onNavigate }) => {
+const MarketingView: React.FC<MarketingViewProps> = () => {
     const [prompt, setPrompt] = useState('');
     const [imageSize, setImageSize] = useState<ImageSize>('1K');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [apiKeyReady, setApiKeyReady] = useLocalStorage('marketingApiKeyReady', false);
-
-    useEffect(() => {
-        const checkApiKey = async () => {
-            // Check if a key is already in localStorage (manual entry)
-            if (getApiKey()) {
-                setApiKeyReady(true);
-                return;
-            }
-            
-            // If in AI Studio, check if a key is selected
-            if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
-                setApiKeyReady(true);
-            }
-        };
-        checkApiKey();
-    }, [setApiKeyReady]);
-
     const aspectRatios: AspectRatio[] = ["1:1", "3:4", "4:3", "9:16", "16:9"];
     
-    const handleSelectKey = async () => {
-        if (!window.aistudio) {
-            setError("La funcionalidad de AI Studio no está disponible.");
-            return;
-        }
-        try {
-            await window.aistudio.openSelectKey();
-            // Optimistically set the key as ready. The API call will validate it.
-            setApiKeyReady(true);
-        } catch (e) {
-            console.error("Could not open select key dialog:", e);
-            setError("No se pudo abrir el diálogo para seleccionar la clave de API.");
-        }
-    };
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -81,59 +37,15 @@ const MarketingView: React.FC<MarketingViewProps> = ({ onNavigate }) => {
             const errorMessage = error.message.includes("ERROR_CLAVE_API") 
                 ? error.message 
                 : (isMissingKey 
-                    ? "ERROR_CLAVE_API: La clave de API no es válida o no tiene acceso a este modelo. Por favor, seleccione una nueva clave."
+                    ? "ERROR_CLAVE_API: Revisa GEMINI_API_KEY en Vercel y el acceso al modelo de imagen."
                     : (`Error al generar la imagen: ${error.message}`));
             
             setError(errorMessage);
-            if (isMissingKey) {
-                setApiKeyReady(false); // Reset state to re-trigger key selection
-            }
         } finally {
             setIsLoading(false);
         }
     };
     
-    if (!apiKeyReady) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl mx-auto p-4">
-                <SparkIcon />
-                <h2 className="text-2xl font-bold text-white mt-4">Acceso a Modelos Avanzados</h2>
-                <p className="text-gray-400 mt-2">
-                    Para utilizar la generación de imágenes de alta calidad, necesita seleccionar una clave de API de un proyecto de Google Cloud con la facturación habilitada.
-                </p>
-                <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline mt-2 text-sm">
-                    Más información sobre la facturación.
-                </a>
-                
-                {hasAistudio() ? (
-                    <button 
-                        onClick={handleSelectKey}
-                        className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg"
-                    >
-                        Seleccionar Clave de API
-                    </button>
-                ) : (
-                    <div className="mt-6 p-4 bg-gray-800 border border-gray-700 rounded-xl">
-                        <p className="text-sm text-gray-300 mb-4">
-                            Parece que estás en un dispositivo móvil o fuera del entorno de AI Studio.
-                        </p>
-                        <p className="text-xs text-gray-400 mb-4">
-                            Por favor, configura tu clave de API manualmente en la sección de <strong>Ajustes (⚙️)</strong> para habilitar esta función.
-                        </p>
-                        <button 
-                            onClick={() => onNavigate('settings')}
-                            className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg border border-gray-600 transition-colors"
-                        >
-                            Ir a Ajustes
-                        </button>
-                    </div>
-                )}
-                
-                 {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
-            </div>
-        );
-    }
-
     return (
         <div className="w-full max-w-4xl mx-auto space-y-6">
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -193,21 +105,6 @@ const MarketingView: React.FC<MarketingViewProps> = ({ onNavigate }) => {
             {error && (
                 <div className="text-center mt-4">
                     <p className="text-red-400 text-sm mb-2">{error}</p>
-                    {error.includes("ERROR_CLAVE_API") && (
-                        <div className="flex flex-col items-center gap-2">
-                            <button 
-                                onClick={handleSelectKey}
-                                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded transition-colors"
-                            >
-                                Seleccionar Clave
-                            </button>
-                            {!hasAistudio() && (
-                                <p className="text-[9px] text-red-300 italic">
-                                    Usa el icono de engranaje (⚙️) en la parte superior de la app para configurar tu clave manualmente.
-                                </p>
-                            )}
-                        </div>
-                    )}
                 </div>
             )}
 
