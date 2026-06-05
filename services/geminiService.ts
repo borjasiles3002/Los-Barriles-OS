@@ -1,3 +1,103 @@
+
+import type { FunctionDeclaration, GenerateContentResponse } from "@google/genai";
+import { ChatMessage, ImageSize, AspectRatio } from '../types';
+import { SYSTEM_PROMPT } from '../constants';
+
+function fileToGenerativePart(data: string, mimeType: string) {
+  return {
+    inlineData: {
+      data,
+      mimeType,
+    },
+  };
+}
+
+export const callGemini = async (
+    chatHistory: ChatMessage[], 
+    systemPromptOverride?: string, 
+    options: { 
+        thinkingMode?: boolean; 
+        useSearch?: boolean; 
+        tools?: FunctionDeclaration[];
+        responseMimeType?: string;
+        responseSchema?: Record<string, unknown>;
+    } = {},
+    modelName: 'gemini-3.1-pro-preview' | 'gemini-3-pro-preview' | 'gemini-3-flash-preview' = 'gemini-3-flash-preview',
+    retries = 2
+): Promise<GenerateContentResponse> => {
+  try {
+    const contents = chatHistory.map(msg => ({
+      role: msg.role,
+      parts: msg.parts.map(part => {
+        if (part.inlineData) {
+          return fileToGenerativePart(part.inlineData.data, part.inlineData.mimeType);
+        }
+        if (part.functionResponse) {
+            return { functionResponse: part.functionResponse as Record<string, unknown> };
+        }
+        return { text: part.text || '' };
+      })
+    }));
+    
+    const config: {
+        systemInstruction: string;
+        thinkingConfig?: { thinkingBudget: number };
+        tools?: ({ googleSearch: Record<string, never> } | { functionDeclarations: FunctionDeclaration[] })[];
+        responseMimeType?: string;
+        responseSchema?: Record<string, unknown>;
+    } = { systemInstruction: systemPromptOverride || SYSTEM_PROMPT };
+    let finalModelName = modelName;
+
+    if (options.thinkingMode) {
+      config.thinkingConfig = { thinkingBudget: 32768 };
+      finalModelName = 'gemini-3.1-pro-preview';
+    }
+
+    if (options.useSearch) {
+        config.tools = [{googleSearch: {}}];
+        finalModelName = 'gemini-3-flash-preview';
+    }
+    
+    if (options.tools) {
+        config.tools = [{functionDeclarations: options.tools}];
+    }
+
+    if (options.responseMimeType) {
+        config.responseMimeType = options.responseMimeType;
+    }
+
+    if (options.responseSchema) {
+        config.responseSchema = options.responseSchema;
+    }
+
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: finalModelName,
+        contents,
+        config
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      let errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+      
+      // Try to parse the error message if it's a JSON string from Gemini
+      try {
+        const parsedError = JSON.parse(errorMessage);
+        if (parsedError.error && parsedError.error.message) {
+            errorMessage = parsedError.error.message;
+        }
+      } catch {
+        // Not a JSON string, keep the original message
+      }
+
+      if (errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("API key not valid") || errorMessage.includes("MISSING_API_KEY")) {
+        throw new Error("ERROR_CLAVE_API: La clave de API de Gemini no es válida o no está configurada. Por favor, verifica tu configuración en AI Studio.");
+      }
+      
       if (errorMessage.includes("Unable to process input image") || errorMessage.includes("Base64 decoding failed") || response.status === 400) {
         throw new Error("Error al procesar la imagen o documento. Asegúrate de que el archivo es válido, no está dañado y no es demasiado grande.");
       }
