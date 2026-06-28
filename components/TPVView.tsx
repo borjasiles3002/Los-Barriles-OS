@@ -48,6 +48,24 @@ const TPVView: React.FC<TPVViewProps> = ({ orders, recipes, drinkStock, employee
   const mapRef = useRef<HTMLDivElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
+  // Always-current ref to avoid stale closure in handlePointerUp (drag-and-drop)
+  const tablesRef = useRef<TableInstance[]>([]);
+  tablesRef.current = tables;
+
+  // Guard against creating duplicate orders when user taps quickly on a free table
+  const creatingOrderRef = useRef(false);
+
+  const openOrders = orders.filter(o => o.status !== 'cerrado');
+  const currentOrder = openOrders.find(o => o.table === selectedTable);
+
+  useEffect(() => {
+    if (currentOrder) creatingOrderRef.current = false;
+  }, [currentOrder?.id]);
+
+  useEffect(() => {
+    creatingOrderRef.current = false;
+  }, [selectedTable]);
+
   // Load layout from Firestore
   useEffect(() => {
       let unsubSnapshot: (() => void) | undefined;
@@ -110,14 +128,10 @@ const TPVView: React.FC<TPVViewProps> = ({ orders, recipes, drinkStock, employee
       saveLayout(tables.filter(t => t.id !== id));
   };
 
-  const openOrders = orders.filter(o => o.status !== 'cerrado'); 
-
   const handleTableClick = (tableName: string) => {
     if (isEditMode) return;
     setSelectedTable(tableName);
   };
-
-  const currentOrder = openOrders.find(o => o.table === selectedTable);
 
   const handleAddItem = (itemInfo: { name: string, price: number, family?: string }) => {
     if (!selectedTable) return;
@@ -158,7 +172,9 @@ const TPVView: React.FC<TPVViewProps> = ({ orders, recipes, drinkStock, employee
             handleFirestoreError(err, OperationType.UPDATE, `orders/${currentOrder.id}`);
         });
     } else {
-        // Create new order
+        // Create new order — guard prevents duplicate creation while Firestore is responding
+        if (creatingOrderRef.current) return;
+        creatingOrderRef.current = true;
         onAddOrder({
             table: selectedTable,
             items: [{
@@ -405,8 +421,8 @@ const TPVView: React.FC<TPVViewProps> = ({ orders, recipes, drinkStock, employee
       if (draggingId) {
           (e.target as HTMLElement).releasePointerCapture(e.pointerId);
           setDraggingId(null);
-          // Only save to firestore when the drag finishes
-          saveLayout(tables);
+          // Use ref to get current tables — closures would capture stale pre-drag state
+          saveLayout(tablesRef.current);
       }
   };
 

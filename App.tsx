@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { ChatMessage, ChatMessagePart, StockItem, Elaboration, Employee, Reservation, FinancialData, HistoricalData, Recipe, ClosingData, ExpenseEntry, SaleEntry, WorkLogEntry, PurchaseRecord, PurchaseItem, Order, OrderStatus, MenuAnalysis, MenuDish, InventoryTransaction, UserRole, Message, Task, KitchenNotification } from './types';
+import { ChatMessage, ChatMessagePart, StockItem, Elaboration, Employee, Reservation, FinancialData, HistoricalData, Recipe, ClosingData, ExpenseEntry, SaleEntry, TipEntry, WorkLogEntry, PurchaseRecord, PurchaseItem, Order, OrderStatus, MenuAnalysis, MenuDish, InventoryTransaction, UserRole, Message, Task, KitchenNotification } from './types';
 import useLocalStorage from './useLocalStorage';
 import { callGemini } from './services/geminiService';
 import { checkAndOpenKeySelector, hasAistudio } from './utils/aistudio';
@@ -1591,13 +1591,7 @@ interface ChatPurchaseItem {
   }
 
   if (isPublicReservation) {
-    return <PublicReservationView onAddReservation={(res) => {
-        // Since we are not logged in we can use addDoc to bypass rules if needed or let user do it if allowed.
-        // Wait, standard firestore rules might block this if not signed in!
-        // For anon users, we enabled anonymous auth in handleLogin, but for public page it may not exist.
-        // We will just invoke handleAddReservation and hope anonymous auth or rules allow it.
-        handleAddReservation(res.nombre, res.fecha, res.personas, res.notas);
-    }} />;
+    return <PublicReservationView onAddReservation={(res) => handleAddReservation(res)} />;
   }
 
   return (
