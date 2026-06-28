@@ -104,7 +104,7 @@ const GastosView: React.FC<GastosViewProps> = ({ onAddExpense, onAddExpenseWithA
         };
 
         try {
-            const response = await callGemini([userMessage], GEMINI_ADVISOR_PROMPT, { tools: [addExpenseTool] }, 'gemini-3-flash-preview');
+            const response = await callGemini([userMessage], GEMINI_ADVISOR_PROMPT, { tools: [addExpenseTool] }, 'gemini-2.0-flash');
             const functionCalls = response.functionCalls;
             
             if (functionCalls && functionCalls.length > 0 && functionCalls[0].name === 'addExpense') {

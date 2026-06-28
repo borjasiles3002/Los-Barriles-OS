@@ -134,7 +134,7 @@ DATOS ACTUALES DEL RESTAURANTE (Contexto para tus respuestas):
 - Histórico (Últimos días): ${JSON.stringify(props.historicalData.slice(0, 7))}
 `;
             const fullSystemPrompt = `${GEMINI_ADVISOR_PROMPT}\n\n${stockContext}`;
-            const finalApiResponse = await callGemini(currentChatHistory, fullSystemPrompt, { thinkingMode, useSearch }, 'gemini-3-flash-preview');
+            const finalApiResponse = await callGemini(currentChatHistory, fullSystemPrompt, { thinkingMode, useSearch }, 'gemini-2.0-flash');
             const finalText = finalApiResponse.text;
             if (finalText) {
                 const finalModelMessage: ChatMessage = { role: 'model', parts: [{ text: finalText }] };
@@ -207,7 +207,7 @@ DATOS ACTUALES DEL RESTAURANTE (Contexto para tus respuestas):
                 const newModelMessage: ChatMessage = { role: 'model', parts: [{ text: analysisText }] };
                 setChatHistory(prev => [...prev, newModelMessage]);
             } else {
-                const response = await callGemini(currentChatHistory, fullSystemPrompt, { thinkingMode, useSearch, tools: ALL_TOOLS }, 'gemini-3-flash-preview');
+                const response = await callGemini(currentChatHistory, fullSystemPrompt, { thinkingMode, useSearch, tools: ALL_TOOLS }, 'gemini-2.0-flash');
                 const functionCalls = response.functionCalls;
                 const text = response.text;
 

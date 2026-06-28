@@ -229,3 +229,12 @@ export interface TipEntry {
   employeeId: string | 'pool';
   orderId?: string;
 }
+
+export interface KitchenNotification {
+  id: string;
+  orderId: string;
+  table: string;
+  timestamp: string;
+  isRead: boolean;
+  itemSummary?: string;
+}

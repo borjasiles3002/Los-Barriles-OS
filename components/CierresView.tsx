@@ -68,7 +68,7 @@ const CierresView: React.FC<CierresViewProps> = ({ closingHistory, onDeleteEntry
         setAdvice([userMessage]);
 
         try {
-            const response = await callGemini([userMessage], GEMINI_ADVISOR_PROMPT, {}, 'gemini-3-pro-preview');
+            const response = await callGemini([userMessage], GEMINI_ADVISOR_PROMPT, {}, 'gemini-2.0-flash');
             const modelMessage: ChatMessage = { role: 'model', parts: [{ text: response.text }] };
             setAdvice(prev => prev ? [...prev, modelMessage] : [modelMessage]);
         } catch (e) {

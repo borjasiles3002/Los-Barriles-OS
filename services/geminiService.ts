@@ -22,7 +22,7 @@ export const callGemini = async (
         responseMimeType?: string;
         responseSchema?: Record<string, unknown>;
     } = {},
-    modelName: 'gemini-3.1-pro-preview' | 'gemini-3-pro-preview' | 'gemini-3-flash-preview' = 'gemini-3-flash-preview',
+    modelName: string = 'gemini-2.0-flash',
     retries = 2
 ): Promise<GenerateContentResponse> => {
   try {
@@ -50,12 +50,12 @@ export const callGemini = async (
 
     if (options.thinkingMode) {
       config.thinkingConfig = { thinkingBudget: 32768 };
-      finalModelName = 'gemini-3.1-pro-preview';
+      finalModelName = 'gemini-2.0-flash';
     }
 
     if (options.useSearch) {
         config.tools = [{googleSearch: {}}];
-        finalModelName = 'gemini-3-flash-preview';
+        finalModelName = 'gemini-2.0-flash';
     }
     
     if (options.tools) {
@@ -156,7 +156,7 @@ export const generateImage = async (prompt: string, imageSize: ImageSize, aspect
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-3-pro-image-preview',
+          model: 'gemini-2.0-flash',
           contents: { parts: [{ text: prompt }] },
           config: {
             imageConfig: {

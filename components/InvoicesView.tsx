@@ -144,7 +144,7 @@ const InvoicesView: React.FC<InvoicesViewProps> = ({ drinkStock, kitchenStock, o
                             },
                             required: ['supplierName', 'date', 'totalAmount', 'items']
                         }
-                    }, 'gemini-3-flash-preview');
+                    }, 'gemini-2.0-flash');
 
                     const text = response.text;
                     if (!text) throw new Error("No se recibió respuesta de la IA");

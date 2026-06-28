@@ -1,3 +1,56 @@
+import { GoogleGenAI } from "@google/genai";
+
+const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_RATE_LIMIT = 20;
+const WINDOW_MS = 60 * 1000;
+const DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_MODELS = new Set([
+  'gemini-2.0-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-2.0-flash-exp',
+  'gemini-2.0-flash-preview-image-generation',
+  'gemini-2.5-flash-preview-tts',
+  'gemini-2.5-flash-native-audio-preview-12-2025',
+]);
+
+const ALLOWED_CONFIG_KEYS = new Set([
+  'systemInstruction',
+  'thinkingConfig',
+  'tools',
+  'toolConfig',
+  'responseMimeType',
+  'responseSchema',
+  'responseModalities',
+  'speechConfig',
+  'imageConfig',
+]);
+
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+interface GeminiRequestBody {
+  model?: string;
+  contents: unknown;
+  config?: unknown;
+}
+
+function getHeader(req: any, name: string): string | undefined {
+  const val = req.headers?.[name];
+  return Array.isArray(val) ? val[0] : val;
+}
+
+function getClientId(req: any): string {
+  return (
+    getHeader(req, 'x-forwarded-for')?.split(',')[0]?.trim() ||
+    getHeader(req, 'x-real-ip') ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
+}
+
+function isAllowedOrigin(req: any): boolean {
+  const origin = getHeader(req, 'origin') || '';
   if (!origin) return true;
 
   const allowed = new Set(

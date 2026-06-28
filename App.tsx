@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { ChatMessage, ChatMessagePart, StockItem, Elaboration, Employee, Reservation, FinancialData, HistoricalData, Recipe, ClosingData, ExpenseEntry, SaleEntry, WorkLogEntry, PurchaseRecord, PurchaseItem, Order, OrderStatus, MenuAnalysis, MenuDish, InventoryTransaction, UserRole, Message, Task } from './types';
+import { ChatMessage, ChatMessagePart, StockItem, Elaboration, Employee, Reservation, FinancialData, HistoricalData, Recipe, ClosingData, ExpenseEntry, SaleEntry, WorkLogEntry, PurchaseRecord, PurchaseItem, Order, OrderStatus, MenuAnalysis, MenuDish, InventoryTransaction, UserRole, Message, Task, KitchenNotification } from './types';
 import useLocalStorage from './useLocalStorage';
 import { callGemini } from './services/geminiService';
 import { checkAndOpenKeySelector, hasAistudio } from './utils/aistudio';
@@ -33,11 +33,12 @@ import MessagesView from './components/MessagesView';
 import TPVView from './components/TPVView';
 import KitchenView from './components/KitchenView';
 import LoginView from './components/LoginView';
+import SalaMonitorView from './components/SalaMonitorView';
 import { SettingsIcon } from './components/icons';
 
 // Firebase Imports
 import { 
-  db, 
+  db,
   auth,
   storage,
   ref,
@@ -55,6 +56,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  where,
   orderBy,
   limit,
   handleFirestoreError,
@@ -66,6 +68,7 @@ import {
 const searchParams = new URLSearchParams(window.location.search);
 const isPublicMenu = searchParams.get('view') === 'public_menu';
 const isPublicReservation = searchParams.get('view') === 'public_reservation';
+const isSalaMonitor = searchParams.get('view') === 'sala';
 const forcedView = searchParams.get('view') as View | null;
 
 export type View = 'main' | 'gestion' | 'stock' | 'hr' | 'reservas' | 'gastos' | 'ventas' | 'cierres' | 'summary' | 'elaborations' | 'marketing' | 'analysis' | 'compras' | 'invoices' | 'menu_designer' | 'settings' | 'orders' | 'supplier_comparator' | 'inventory' | 'employee_dashboard' | 'messages' | 'login' | 'tpv' | 'kitchen' | 'finance' | 'inventory_purchases' | 'gastronomy' | 'ai_tools';
@@ -76,6 +79,9 @@ const App: React.FC = () => {
 
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [kitchenNotifications, setKitchenNotifications] = useState<KitchenNotification[]>([]);
   const [currentView, setCurrentView] = useLocalStorage<View>('currentView', 'login');
 
   useEffect(() => {
@@ -122,6 +128,25 @@ const App: React.FC = () => {
       }
     });
     return () => unsubscribe();
+  }, []);
+
+  // Offline/online detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   useEffect(() => {
@@ -285,6 +310,21 @@ const App: React.FC = () => {
       unsubs.push(onSnapshot(query(collection(db, 'historicalData'), orderBy('date', 'desc'), limit(150)), (snapshot) => {
         setHistoricalData(snapshot.docs.map(doc => ({ ...doc.data() } as HistoricalData)));
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'historicalData')));
+
+      // Kitchen notifications listener
+      let initialNotifsLoaded = false;
+      unsubs.push(onSnapshot(
+        query(collection(db, 'kitchenNotifications'), where('isRead', '==', false), orderBy('timestamp', 'desc'), limit(50)),
+        (snapshot) => {
+          const notifs = snapshot.docs.map(d => d.data() as KitchenNotification);
+          if (initialNotifsLoaded && snapshot.docChanges().some(c => c.type === 'added')) {
+            playKitchenSound();
+          }
+          setKitchenNotifications(notifs);
+          initialNotifsLoaded = true;
+        },
+        (err) => console.warn('kitchenNotifications listener error:', err)
+      ));
     }
 
     return () => {
@@ -327,6 +367,27 @@ const App: React.FC = () => {
   }, [salesHistory, expenseHistory]);
 
   // Removed auto-seeding logic to prevent default employees from reappearing
+
+  const playKitchenSound = () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      const play = (freq: number, t: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.45, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.start(t); osc.stop(t + dur);
+      };
+      play(523, ctx.currentTime, 0.25);
+      play(659, ctx.currentTime + 0.18, 0.25);
+      play(784, ctx.currentTime + 0.36, 0.4);
+    } catch { /* audio not available */ }
+  };
 
   const handleRefreshAllData = () => {
     setIsRefreshing(true);
@@ -800,7 +861,7 @@ const App: React.FC = () => {
                 },
                 required: ['purchase']
             }
-        }, 'gemini-3-flash-preview');
+        }, 'gemini-2.0-flash');
         const responseText = response.text;
         if (!responseText) {
             throw new Error("La IA no devolvió una respuesta de texto.");
@@ -905,7 +966,7 @@ const App: React.FC = () => {
                 },
                 required: ['sale']
             }
-        }, 'gemini-3-flash-preview');
+        }, 'gemini-2.0-flash');
         
         const responseText = response.text;
         if (!responseText) throw new Error("La IA no devolvió una respuesta de texto.");
@@ -1340,9 +1401,32 @@ interface ChatPurchaseItem {
       const updateData: Partial<Order> = { status, updatedAt: new Date().toISOString() };
       if (assignedCookId !== undefined) updateData.assignedCookId = assignedCookId;
       await updateDoc(doc(db, 'orders', orderId), { ...updateData });
+
+      if (status === 'listo') {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          const notif: KitchenNotification = {
+            id: `kn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            orderId,
+            table: order.table,
+            timestamp: new Date().toISOString(),
+            isRead: false,
+            itemSummary: order.items.map(i => `${i.quantity}x ${i.name}`).join(', '),
+          };
+          await setDoc(doc(db, 'kitchenNotifications', notif.id), notif);
+        }
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
     }
+  };
+
+  const dismissKitchenNotifications = async () => {
+    try {
+      await Promise.all(
+        kitchenNotifications.map(n => updateDoc(doc(db, 'kitchenNotifications', n.id), { isRead: true }))
+      );
+    } catch { /* best-effort */ }
   };
 
   const handleDeleteOrder = async (orderId: string) => {
@@ -1502,6 +1586,10 @@ interface ChatPurchaseItem {
     return <PublicMenu elaborations={elaborations} />;
   }
 
+  if (isSalaMonitor) {
+    return <SalaMonitorView />;
+  }
+
   if (isPublicReservation) {
     return <PublicReservationView onAddReservation={(res) => {
         // Since we are not logged in we can use addDoc to bypass rules if needed or let user do it if allowed.
@@ -1561,11 +1649,53 @@ interface ChatPurchaseItem {
           </div>
       </header>
       
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="bg-yellow-600 text-black px-4 py-2 text-center text-sm font-bold flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728M5.636 5.636a9 9 0 000 12.728M12 12h.01M9.172 9.172A4 4 0 0112 8a4 4 0 012.828 1.172" /></svg>
+          Sin conexión — los datos se sincronizarán cuando vuelva la red
+        </div>
+      )}
+
+      {/* PWA install banner */}
+      {installPrompt && (
+        <div className={`px-4 py-2 flex items-center justify-between gap-2 text-sm ${theme === 'dark' ? 'bg-blue-900/80 text-blue-100' : 'bg-blue-50 text-blue-900 border-b border-blue-200'}`}>
+          <span>Instala la app en tu pantalla de inicio para acceso rápido</span>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => { (installPrompt as any).prompt(); setInstallPrompt(null); }}
+              className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+            >
+              Instalar
+            </button>
+            <button onClick={() => setInstallPrompt(null)} className="px-2 py-1 text-xs opacity-60 hover:opacity-100">✕</button>
+          </div>
+        </div>
+      )}
+
       <main className={`flex-1 flex flex-col overflow-y-auto p-4 sm:p-6 ${currentUser && (userRole === 'employee' || userRole === 'camarero' || userRole === 'cocinero') ? 'pb-24 md:pb-6' : ''}`}>
         {refreshMessage && (
           <div className="mb-4 p-3 bg-emerald-900/50 border border-emerald-700 rounded-xl text-center animate-fade-in flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
             <p className="text-emerald-200 text-sm font-medium">{refreshMessage}</p>
+          </div>
+        )}
+        {/* Kitchen-ready notification banner for camareros */}
+        {kitchenNotifications.length > 0 && (userRole === 'camarero' || userRole === 'employee') && (
+          <div className="mb-4 p-3 bg-green-900/80 border border-green-500 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🍽️</span>
+              <div>
+                <p className="text-green-200 font-bold text-sm">{kitchenNotifications.length} plato(s) listo(s) para servir</p>
+                <p className="text-green-400 text-xs">{kitchenNotifications.map(n => n.table).join(', ')}</p>
+              </div>
+            </div>
+            <button
+              onClick={dismissKitchenNotifications}
+              className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shrink-0"
+            >
+              Entendido
+            </button>
           </div>
         )}
         {isAnalyzing && (
@@ -1896,11 +2026,16 @@ interface ChatPurchaseItem {
           </button>
           
           {(userRole === 'camarero' || userRole === 'employee') && (
-            <button 
-              onClick={() => setCurrentView('tpv')}
-              className={`flex flex-col items-center gap-1 p-2 transition-all ${currentView === 'tpv' ? 'text-blue-500 scale-110' : 'text-gray-500'}`}
+            <button
+              onClick={() => { setCurrentView('tpv'); dismissKitchenNotifications(); }}
+              className={`flex flex-col items-center gap-1 p-2 transition-all relative ${currentView === 'tpv' ? 'text-blue-500 scale-110' : 'text-gray-500'}`}
             >
               <VentasIcon className="w-6 h-6" />
+              {kitchenNotifications.length > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1">
+                  {kitchenNotifications.length}
+                </span>
+              )}
               <span className="text-[10px] font-bold">TPV</span>
             </button>
           )}
